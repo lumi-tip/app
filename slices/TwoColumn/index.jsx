@@ -25,6 +25,7 @@ function TwoColumn({ slice }) {
       imageAlt={slice?.primary?.image?.alt}
       imagePosition={slice?.primary?.image_position}
       margin={slice?.primary?.margin || ''}
+      maxwidth={slice?.primary?.max_width}
       gridGap={slice?.primary?.grid_gap || '24px'}
       informationSize={slice?.primary?.information_size}
       titleColor={slice.primary?.title_color}
@@ -39,6 +40,9 @@ function TwoColumn({ slice }) {
       studentsAvatarsDescriptions={slice?.primary?.student_avatar_description}
       multiDescription={slice?.items}
       transparent={slice?.primary?.transparent}
+      marginTop={slice?.primary?.margin_top}
+      marginBottom={slice?.primary?.margin_bottom}
+      borderRadius={slice?.primary.border_radius}
     />
   );
 }

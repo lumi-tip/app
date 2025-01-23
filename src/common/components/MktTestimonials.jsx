@@ -16,7 +16,7 @@ import axios from '../../axios';
 import { BREATHECODE_HOST } from '../../utils/variables';
 
 function TestimonialBox({ picture, name, rating, description, version }) {
-  const { fontColor2, backgroundColor, hexColor } = useStyle();
+  const { fontColor2, backgroundColor, backgroundColor2, backgroundColor5, hexColor } = useStyle();
   const limit = 160;
   const descriptionLength = lengthOfString(description);
   const truncatedDescription = descriptionLength > limit ? `${description?.substring(0, limit)}...` : description;
@@ -31,6 +31,7 @@ function TestimonialBox({ picture, name, rating, description, version }) {
       textName: {
         fontWeight: '900',
         lineHeight: '16px',
+        marginTop: '15px',
       },
       imageStyles: {
         borderRadius: '50%',
@@ -41,24 +42,28 @@ function TestimonialBox({ picture, name, rating, description, version }) {
       textName: {
         height: '62px',
         fontSize: '18px',
-        backgroundColor: '#CFEEFF',
+        backgroundColor: backgroundColor5,
         pt: '24px',
         pb: '16px',
         borderRadius: '8px 8px 0 0',
         fontWeight: 400,
         lineHeight: '21.6px',
-        marginTop: '70px',
+        // marginTop: '70px',
       },
       box: {
         width: '306px',
         position: 'relative',
         padding: '0px',
+        marginTop: '45px',
+        justifyContent: 'start',
+        height: 'auto',
+        // height: '253px',
       },
       imageStyles: {
         border: '2px solid #00041A',
         position: 'absolute',
         borderRadius: '50%',
-        top: '25px',
+        top: '-45px',
         left: 'calc(50% - 35px)',
       },
       imageBrand: {
@@ -68,24 +73,28 @@ function TestimonialBox({ picture, name, rating, description, version }) {
         width: '59px',
         height: '19px',
         position: 'absolute',
-        bottom: '175px',
+        top: '-15px',
         left: '166px',
         padding: '4px',
         backgroundColor: '#EEF9FE',
       },
       textDescription: {
-        height: '130px',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '0 0 8px 8px',
-        padding: '0px 8px 0px 8px',
-        width: '306px',
-        fontSize: '12px',
-        textAlign: 'center',
-        lineHeight: '14.4px',
+        backgroundColor: backgroundColor2,
+        style: {
+          borderRadius: '0 0 8px 8px',
+          padding: '8px',
+          width: '306px',
+          fontSize: '12px',
+          textAlign: 'center',
+          lineHeight: '14.4px',
+          marginTop: '0',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        },
       },
     },
   };
-  console.log('**********', styles[version]);
+
   return (
     <Box
       height={{ md: '270px', base: '320px' }}
@@ -96,7 +105,7 @@ function TestimonialBox({ picture, name, rating, description, version }) {
       padding="15px"
       textAlign="center"
       borderColor={hexColor.borderColor}
-      backgroundColor="red"
+      // backgroundColor="red"
       flexShrink="0"
       {...styles[version]?.box}
     >
@@ -105,14 +114,14 @@ function TestimonialBox({ picture, name, rating, description, version }) {
         <Image
           name={`${name}-2`}
           alt={`${name} picture 2`}
-          src={picture}
+          src="https://cdn.worldvectorlogo.com/logos/globant-1.svg"
           width={65}
           height={65}
           style={styles[version]?.imageBrand}
         />
       ) : null }
       <Text
-        marginTop="15px"
+        // marginTop="15px"
         size="md"
         {...styles[version]?.textName}
       >
@@ -132,9 +141,9 @@ function TestimonialBox({ picture, name, rating, description, version }) {
         lineHeight="14px"
         color={fontColor2}
         title={description}
-        style={styles[version]?.textDescription}
+        {...styles[version]?.textDescription}
       >
-        {`“${truncatedDescription}”`}
+        {version === 'v2' ? `“${description}”` : `“${truncatedDescription}”`}
       </Text>
     </Box>
   );

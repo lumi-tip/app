@@ -55,6 +55,11 @@ function MktTwoColumnSideImage({
   studentsAvatarsDescriptions,
   multiDescription,
   transparent,
+  marginTop,
+  marginBottom,
+  maxWidth,
+  borderRadius,
+  margin,
   ...rest
 }) {
   const { fontColor2, hexColor, backgroundColor } = useStyle();
@@ -132,17 +137,19 @@ function MktTwoColumnSideImage({
     };
   };
   const prismicStyles = prisimicStyles();
-
   return (
     <Box
       id={id}
+      margin={margin || '0 auto'}
+      maxWidth={maxWidth || '1280px'}
+      borderRadius={borderRadius}
       background={transparent ? 'transparent' : background || backgroundColor}
       {...rest}
     >
       <Flex
         flexDirection={{ base: 'column', md: 'row' }}
-        maxWidth="1280px"
-        margin="0 auto"
+        width="100%"
+        margin="0"
         id={id}
         border={border}
         alignItems="center"
@@ -150,7 +157,8 @@ function MktTwoColumnSideImage({
         padding={{ base: '20px 10px', md: '24px 0px' }}
         px={{ base: '10px', md: '2rem' }}
         gridGap={gridGap}
-        marginTop="20px"
+        marginTop={marginTop}
+        marginBottom={marginBottom}
         style={{
           direction: flexDirection[imagePosition],
         }}
@@ -310,6 +318,11 @@ MktTwoColumnSideImage.propTypes = {
   customSubTitleSize: PropTypes.string,
   multiDescription: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.any])),
   transparent: PropTypes.bool,
+  marginTop: PropTypes.string,
+  marginBottom: PropTypes.string,
+  maxWidth: PropTypes.string,
+  margin: PropTypes.string,
+  borderRadius: PropTypes.string,
 };
 
 MktTwoColumnSideImage.defaultProps = {
@@ -346,6 +359,11 @@ MktTwoColumnSideImage.defaultProps = {
   customSubTitleSize: null,
   multiDescription: [],
   transparent: false,
+  marginTop: '',
+  marginBottom: '',
+  maxWidth: '',
+  margin: '',
+  borderRadius: '',
 };
 
 export default MktTwoColumnSideImage;
