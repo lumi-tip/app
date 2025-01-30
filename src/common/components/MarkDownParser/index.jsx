@@ -19,6 +19,7 @@ import {
 } from './MDComponents';
 import useModuleHandler from '../../hooks/useModuleHandler';
 import CodeViewer, { languagesLabels, languagesNames } from '../CodeViewer';
+import CodeDiff from '../CodeDiff';
 import DynamicCallToAction from '../DynamicCallToAction';
 
 function MarkdownH2Heading({ children }) {
@@ -62,6 +63,50 @@ function IframeComponent({ src, title, width, height }) {
 }
 function OnlyForComponent({ ...props }) {
   return (<OnlyForBanner {...props} />);
+}
+// el problema que se esta presentando es que los codigos no vienen juntos, vienen separados entonces lo que hay que hacer tal vez es que el parser meta los dos codigos dentro de la misma estiqueta
+function CodeDiffComponent({ preParsedContent, node }) {
+  if (!preParsedContent) return null;
+
+  const nodeStartOffset = node?.position?.start?.offset ?? 0;
+  const nodeEndOffset = node?.position?.end?.offset ?? preParsedContent.length;
+  const input = preParsedContent.substring(nodeStartOffset, nodeEndOffset);
+
+  const regex = /```(?<language>[a-zA-Z]+)(?<meta>.*compare=true.*)(?<code>[\s\S]+?)```/gm;
+  let match;
+  const fragments = [];
+
+  console.log('soy el input', input);
+
+  // 🔹 Resetear `lastIndex` antes del bucle
+  regex.lastIndex = 0;
+
+  // eslint-disable-next-line no-cond-assign
+  while ((match = regex.exec(input)) !== null) {
+    fragments.push({
+      fullContent: match[0],
+      language: match.groups.language.trim(),
+      meta: match.groups.meta.trim(),
+      code: match.groups.code.trim(),
+    });
+
+    // 🔹 Resetear `lastIndex` manualmente en caso de errores en la captura
+    regex.lastIndex = match.index + match[0].length;
+  }
+
+  console.log('Detected fragments:', fragments);
+
+  if (fragments.length === 2) {
+    return (
+      <CodeDiff
+        oldCode={fragments[0].fullContent}
+        newCode={fragments[1].fullContent}
+        language={fragments[0].language}
+      />
+    );
+  }
+
+  return null;
 }
 
 function CodeViewerComponent(props) {
@@ -218,16 +263,16 @@ function MarkDownParser({
   }, [content]);
 
   const preParsedContent = useMemo(() => {
-    //This regex is to remove the runable empty codeblocks
     const emptyCodeRegex = /```([a-zA-Z]+).*runable=("true"|true|'true').*(\n{1,}|\s{1,}\n{1,})?```/gm;
-    //This regex is to wrap all the runable codeblocks inside of a <codeviewer> tag
-    const codeViewerRegex = /(```(?<language>[\w.]+).*runable=("true"|'true'|true).*(?<code>(?:.|\n)*?)```\n?)+/gm;
-
-    const removedEmptyCodeViewers = content?.length > 0 ? content.replace(emptyCodeRegex, () => '') : '';
-
-    const contentReplace = removedEmptyCodeViewers.replace(codeViewerRegex, (match) => `<pre><codeviewer>\n${match}</codeviewer></pre>\n`);
-
+    const codeViewerRegex = /(```(?<language>[\w.]+).*runable=("true"|'true'|true)(?<code>[\s\S]+?)```)/gm;
+    const codeDiffRegex = /(```(?<language>[a-zA-Z]+).*compare=true(?<code>[\s\S]+?)```)/gm;
     const contextPathRegex = /```([a-zA-Z]+).*(path=[^\s]*).*([\s\S]+?)```/g;
+
+    const removedEmptyCodeViewers = content?.length > 0 ? content.replace(emptyCodeRegex, '') : '';
+
+    const contentReplace = removedEmptyCodeViewers
+      .replace(codeViewerRegex, (match) => `<pre><codeviewer>${match}</codeviewer></pre>\n`)
+      .replace(codeDiffRegex, (match) => `<pre><codediff>${match}</codediff></pre>\n`);
 
     let fileMatch;
     // eslint-disable-next-line no-cond-assign
@@ -268,6 +313,7 @@ function MarkDownParser({
           // },
           onlyfor: ({ ...props }) => OnlyForComponent({ ...props }),
           codeviewer: ({ ...props }) => CodeViewerComponent({ ...props, preParsedContent, fileContext }),
+          codediff: ({ ...props }) => CodeDiffComponent({ ...props, preParsedContent }),
           calltoaction: ({ ...props }) => MdCallToAction({ ...props, assetData }),
           // Component for list of checkbox
           // children[1].props.node.children[0].properties.type
