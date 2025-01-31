@@ -64,7 +64,7 @@ function IframeComponent({ src, title, width, height }) {
 function OnlyForComponent({ ...props }) {
   return (<OnlyForBanner {...props} />);
 }
-// el problema que se esta presentando es que los codigos no vienen juntos, vienen separados entonces lo que hay que hacer tal vez es que el parser meta los dos codigos dentro de la misma estiqueta
+
 function CodeDiffComponent({ preParsedContent, node }) {
   if (!preParsedContent) return null;
 
@@ -76,9 +76,6 @@ function CodeDiffComponent({ preParsedContent, node }) {
   let match;
   const fragments = [];
 
-  console.log('soy el input', input);
-
-  // 🔹 Resetear `lastIndex` antes del bucle
   regex.lastIndex = 0;
 
   // eslint-disable-next-line no-cond-assign
@@ -90,7 +87,6 @@ function CodeDiffComponent({ preParsedContent, node }) {
       code: match.groups.code.trim(),
     });
 
-    // 🔹 Resetear `lastIndex` manualmente en caso de errores en la captura
     regex.lastIndex = match.index + match[0].length;
   }
 
@@ -265,14 +261,34 @@ function MarkDownParser({
   const preParsedContent = useMemo(() => {
     const emptyCodeRegex = /```([a-zA-Z]+).*runable=("true"|true|'true').*(\n{1,}|\s{1,}\n{1,})?```/gm;
     const codeViewerRegex = /(```(?<language>[\w.]+).*runable=("true"|'true'|true)(?<code>[\s\S]+?)```)/gm;
-    const codeDiffRegex = /(```(?<language>[a-zA-Z]+).*compare=true(?<code>[\s\S]+?)```)/gm;
+    const codeDiffRegex = /```(?<language>[a-zA-Z]+).*compare=true(?<code>[\s\S]+?)```/gm;
     const contextPathRegex = /```([a-zA-Z]+).*(path=[^\s]*).*([\s\S]+?)```/g;
 
     const removedEmptyCodeViewers = content?.length > 0 ? content.replace(emptyCodeRegex, '') : '';
 
-    const contentReplace = removedEmptyCodeViewers
-      .replace(codeViewerRegex, (match) => `<pre><codeviewer>${match}</codeviewer></pre>\n`)
-      .replace(codeDiffRegex, (match) => `<pre><codediff>${match}</codediff></pre>\n`);
+    let contentReplace = removedEmptyCodeViewers.replace(codeViewerRegex, (match) => `<pre><codeviewer>${match}</codeviewer></pre>\n`);
+
+    let match;
+    const codeDiffBlocks = [];
+    // eslint-disable-next-line no-cond-assign
+    while ((match = codeDiffRegex.exec(contentReplace)) !== null) {
+      codeDiffBlocks.push(match[0]);
+    }
+
+    if (codeDiffBlocks.length === 2) {
+      contentReplace = contentReplace.replace(
+        codeDiffBlocks[0],
+        `<pre><codediff>${codeDiffBlocks[0]}`,
+      ).replace(
+        codeDiffBlocks[1],
+        `${codeDiffBlocks[1]}</codediff></pre>\n`,
+      );
+    } else if (codeDiffBlocks.length === 1) {
+      contentReplace = contentReplace.replace(
+        codeDiffBlocks[0],
+        `<pre><codeviewer>${codeDiffBlocks[0]}</codeviewer></pre>\n`,
+      );
+    }
 
     let fileMatch;
     // eslint-disable-next-line no-cond-assign

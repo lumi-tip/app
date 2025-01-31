@@ -2,6 +2,13 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { Box, Flex } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
 
+function cleanCode(code) {
+  return code
+    .replace(/^```[a-zA-Z0-9#\-\s=]+$/gm, '') // Elimina solo la primera línea con ```
+    .replace(/```$/gm, '') // Elimina el cierre ```
+    .trim(); // Elimina espacios en blanco extra
+}
+
 export default function CodeDiff({ oldCode, newCode, language, oldColor, newColor }) {
   return (
     <Flex gap="20px">
@@ -11,7 +18,7 @@ export default function CodeDiff({ oldCode, newCode, language, oldColor, newColo
           Código Anterior
         </Box>
         <SyntaxHighlighter language={language}>
-          {oldCode.trim()}
+          {cleanCode(oldCode)}
         </SyntaxHighlighter>
       </Box>
 
@@ -21,7 +28,7 @@ export default function CodeDiff({ oldCode, newCode, language, oldColor, newColo
           Código Modificado
         </Box>
         <SyntaxHighlighter language={language}>
-          {newCode.trim()}
+          {cleanCode(newCode)}
         </SyntaxHighlighter>
       </Box>
     </Flex>
