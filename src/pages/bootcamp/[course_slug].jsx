@@ -379,6 +379,7 @@ function CoursePage({ data, syllabus }) {
 
   const assetCount = cohortData?.modulesInfo?.count;
   const assignmentList = cohortData?.modulesInfo?.assignmentList;
+  const studentsImages = t(`students-course-images.${data?.slug}`, {}, { returnObjects: true });
 
   const getInitialData = async () => {
     setInitialDataIsFetching(true);
@@ -536,6 +537,25 @@ function CoursePage({ data, syllabus }) {
     });
   };
 
+  const adjustFontSizeForMobile = (html) => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      return html?.replace(/font-size:\s*\d+px;?/gi, 'font-size: 36px;');
+    }
+    return html;
+  };
+
+  const imageSource = Array.isArray(studentsImages) && studentsImages.length > 0
+    ? studentsImages.slice(0, limitViewStudents)
+    : students.slice(0, limitViewStudents).map((student) => {
+      const existsAvatar = student.user.profile?.avatar_url;
+      const avatarNumber = adjustNumberBeetwenMinMax({
+        number: student.user?.id,
+        min: 1,
+        max: 20,
+      });
+      return existsAvatar || `${BREATHECODE_HOST}/static/img/avatar-${avatarNumber}.png`;
+    });
+
   return (
     <>
       {cleanedStructuredData?.name && (
@@ -567,7 +587,7 @@ function CoursePage({ data, syllabus }) {
               <Flex as="h1" gridGap="8px" flexDirection="column" alignItems="start">
                 {
                   data?.course_translation?.heading ? (
-                    <Heading as="span" size={{ base: '38px', md: '46px' }} fontFamily="lato" letterSpacing="0.05em" fontWeight="normal" lineHeight="normal" dangerouslySetInnerHTML={{ __html: data?.course_translation?.heading }} />
+                    <Heading as="span" size={{ base: '33px', md: '46px' }} fontFamily="lato" letterSpacing="0.05em" fontWeight="normal" lineHeight="normal" dangerouslySetInnerHTML={{ __html: adjustFontSizeForMobile(data?.course_translation?.heading) }} />
                   ) : (
                     <>
                       <Heading as="span" size={{ base: '38px', md: '46px' }} fontFamily="lato" letterSpacing="0.05em" fontWeight="normal" lineHeight="normal">
@@ -588,35 +608,26 @@ function CoursePage({ data, syllabus }) {
             {/* Students count */}
             <Flex alignItems="center" gridGap="16px">
               <Flex>
-                {initialDataIsFetching
-                  ? (
-                    <AvatarSkeletonWrapped
-                      quantity={3}
-                      max={3}
-                      margin="0 -21px 0 0 !important"
-                      size="40px"
+                {initialDataIsFetching ? (
+                  <AvatarSkeletonWrapped
+                    quantity={3}
+                    max={3}
+                    margin="0 -21px 0 0 !important"
+                    size="40px"
+                  />
+                ) : (
+                  imageSource.map((imageUrl, index) => (
+                    <Image
+                      margin={index < limitViewStudents - 1 ? '0 -21px 0 0' : '0'}
+                      src={imageUrl}
+                      width="40px"
+                      height="40px"
+                      borderRadius="50%"
+                      objectFit="cover"
+                      alt={`Student image ${index + 1}`}
                     />
-                  )
-                  : students.slice(0, limitViewStudents).map((student, index) => {
-                    const existsAvatar = student.user.profile?.avatar_url;
-                    const avatarNumber = adjustNumberBeetwenMinMax({
-                      number: student.user?.id,
-                      min: 1,
-                      max: 20,
-                    });
-                    return (
-                      <Image
-                        key={student.user?.profile?.full_name}
-                        margin={index < (limitViewStudents - 1) ? '0 -21px 0 0' : '0'}
-                        src={existsAvatar || `${BREATHECODE_HOST}/static/img/avatar-${avatarNumber}.png`}
-                        width="40px"
-                        height="40px"
-                        borderRadius="50%"
-                        objectFit="cover"
-                        alt={`Picture of ${student?.user?.first_name}`}
-                      />
-                    );
-                  })}
+                  ))
+                )}
               </Flex>
               {initialDataIsFetching
                 ? <SkeletonText margin="0 0 0 21px" width="10rem" noOfLines={1} />
