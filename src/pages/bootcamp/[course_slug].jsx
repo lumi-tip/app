@@ -15,7 +15,7 @@ import Heading from '../../common/components/Heading';
 import { error } from '../../utils/logging';
 import bc from '../../common/services/breathecode';
 import { generateCohortSyllabusModules } from '../../common/handlers/cohorts';
-import { adjustNumberBeetwenMinMax, capitalizeFirstLetter, cleanObject, setStorageItem, isWindow, getBrowserInfo } from '../../utils';
+import { adjustNumberBeetwenMinMax, capitalizeFirstLetter, cleanObject, setStorageItem, isWindow, getBrowserInfo, getQueryString } from '../../utils';
 import useStyle from '../../common/hooks/useStyle';
 import useRigo from '../../common/hooks/useRigo';
 import OneColumnWithIcon from '../../common/components/OneColumnWithIcon';
@@ -37,8 +37,10 @@ import useCohortHandler from '../../common/hooks/useCohortHandler';
 import { reportDatalayer } from '../../utils/requests';
 import MktTwoColumnSideImage from '../../common/components/MktTwoColumnSideImage';
 import { AvatarSkeletonWrapped } from '../../common/components/Skeleton';
+import { usePersistentBySession } from '../../common/hooks/usePersistent';
 import CouponTopBar from '../../common/components/CouponTopBar';
 import completions from './completion-jobs.json';
+import SimpleModal from '../../common/components/SimpleModal';
 
 export async function getStaticPaths({ locales }) {
   const mktQueryString = parseQuerys({
@@ -108,9 +110,11 @@ export async function getStaticProps({ locale, locales, params }) {
 
 function CoursePage({ data, syllabus }) {
   const { state, getPriceWithDiscount, getSelfAppliedCoupon, applyDiscountCouponsToPlans } = useSignup();
+  const [coupon] = usePersistentBySession('coupon', '');
   const { selfAppliedCoupon } = state;
   const showBottomCTA = useRef(null);
   const [isCtaVisible, setIsCtaVisible] = useState(true);
+  const [allDiscounts, setAllDiscounts] = useState([]);
   const { isAuthenticated, user, logout, cohorts } = useAuth();
   const { hexColor, backgroundColor, fontColor, borderColor, complementaryBlue, featuredColor } = useStyle();
   const { isRigoInitialized, rigo } = useRigo();
@@ -127,6 +131,7 @@ function CoursePage({ data, syllabus }) {
   const [cohortData, setCohortData] = useState({});
   const [planData, setPlanData] = useState({});
   const [initialDataIsFetching, setInitialDataIsFetching] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const { t, lang } = useTranslation('course');
   const router = useRouter();
   const translationsObj = getTranslations(t);
@@ -166,20 +171,22 @@ function CoursePage({ data, syllabus }) {
     plan_id: featuredPlanToEnroll?.plan_id,
     has_available_cohorts: planData?.has_available_cohorts,
     cohort: cohortId,
+    coupon: getQueryString('coupon'),
   }) : `?plan=${data?.plan_slug}&cohort=${cohortId}`;
 
-  const handleCoupon = (priceText) => {
-    if (!selfAppliedCoupon || featuredPlanToEnroll.price === 0) return priceText;
+  const handleCoupons = (priceText) => {
+    if (!allDiscounts.length === 0 || featuredPlanToEnroll.price === 0) return priceText;
 
     const currencySymbol = priceText.replace(/[\d.,]/g, '');
+    let discountedPrice = featuredPlanToEnroll.price;
 
-    let discountedPrice;
-
-    if (selfAppliedCoupon.discount_type === 'PERCENT_OFF') {
-      discountedPrice = featuredPlanToEnroll.price - (featuredPlanToEnroll.price * selfAppliedCoupon.discount_value);
-    } else {
-      discountedPrice = featuredPlanToEnroll.price - selfAppliedCoupon.discount_value;
-    }
+    allDiscounts.forEach((discount) => {
+      if (discount.discount_type === 'PERCENT_OFF') {
+        discountedPrice -= (discountedPrice * discount.discount_value);
+      } else {
+        discountedPrice -= discount.discount_value;
+      }
+    });
 
     discountedPrice = Math.floor(discountedPrice * 100) / 100;
 
@@ -189,16 +196,16 @@ function CoursePage({ data, syllabus }) {
   const getPlanPrice = () => {
     if (featuredPlanToEnroll?.plan_slug) {
       if (featuredPlanToEnroll.period === 'MONTH') {
-        return `${t('signup:info.monthly')} ${handleCoupon(featuredPlanToEnroll.priceText)}`;
+        return `${t('signup:info.monthly')} ${handleCoupons(featuredPlanToEnroll.priceText)}`;
       }
       if (featuredPlanToEnroll.period === 'YEAR') {
-        return `${handleCoupon(featuredPlanToEnroll.priceText)} ${t('signup:info.monthly')}`;
+        return `${handleCoupons(featuredPlanToEnroll.priceText)} ${t('signup:info.monthly')}`;
       }
       if (featuredPlanToEnroll.period === 'ONE_TIME') {
-        return `${handleCoupon(featuredPlanToEnroll.priceText)}, ${t('signup:info.one-time-payment')}`;
+        return `${handleCoupons(featuredPlanToEnroll.priceText)}, ${t('signup:info.one-time-payment')}`;
       }
       if (featuredPlanToEnroll.period === 'FINANCING') {
-        return `${handleCoupon(featuredPlanToEnroll.priceText)} ${t('signup:info.installments')}`;
+        return `${handleCoupons(featuredPlanToEnroll.priceText)} ${t('signup:info.installments')}`;
       }
       if (featuredPlanToEnroll?.type === 'TRIAL') {
         return t('common:start-free-trial');
@@ -455,6 +462,9 @@ function CoursePage({ data, syllabus }) {
     )) === index) : [];
 
     await getSelfAppliedCoupon(formatedPlanData.plans?.suggested_plan?.slug || formatedPlanData.plans?.original_plan?.slug);
+    const couponOnQuery = await getQueryString('coupon');
+    const { data: allCouponsApplied } = await bc.payment({ coupons: [couponOnQuery || coupon], plan: formatedPlanData.plans?.suggested_plan?.slug || formatedPlanData.plans?.original_plan?.slug }).verifyCoupon();
+    setAllDiscounts(allCouponsApplied);
 
     setCohortData({
       cohortSyllabus,
@@ -633,7 +643,7 @@ function CoursePage({ data, syllabus }) {
                 ? <SkeletonText margin="0 0 0 21px" width="10rem" noOfLines={1} />
                 : (
 
-                  <Text size="16px" color="currentColor" fontWeight={400}>
+                  <Text size={{ base: '14', md: '16px' }} color="currentColor" fontWeight={400}>
                     {students.length > limitViewStudents ? t('students-enrolled-count', { count: students.length - limitViewStudents }) : ''}
                   </Text>
                 )}
@@ -645,7 +655,7 @@ function CoursePage({ data, syllabus }) {
                   <Flex key={item.title} gridGap="9px" alignItems="center">
                     <Icon icon="checked2" width="15px" height="11px" color={hexColor.green} />
                     <Text
-                      size="16px"
+                      size={{ base: '14', md: '16px' }}
                       fontWeight={400}
                       color="currentColor"
                       lineHeight="normal"
@@ -655,7 +665,7 @@ function CoursePage({ data, syllabus }) {
                 ))}
               </Flex>
 
-              <Instructors list={instructors} isLoading={initialDataIsFetching} tryRigobot={() => tryRigobot('#ai-tutor')} />
+              <Instructors list={instructors} isLoading={initialDataIsFetching} tryRigobot={() => setShowModal(true)} />
 
               {/* Course description */}
               <Flex flexDirection="column" gridGap="16px">
@@ -664,9 +674,6 @@ function CoursePage({ data, syllabus }) {
                     {data?.course_translation?.short_description}
                   </Text>
                 )}
-                <Text size="16px" fontWeight={400} color={hexColor.fontColor3} lineHeight="normal">
-                  {data?.course_translation?.description}
-                </Text>
               </Flex>
             </Flex>
           </Flex>
@@ -720,17 +727,35 @@ function CoursePage({ data, syllabus }) {
                     ) : (
                       <>
                         <Button
+                          height="auto"
+                          id="bootcamp-enroll-button"
                           variant="default"
                           isLoading={initialDataIsFetching || (planList?.length === 0 && !featuredPlanToEnroll?.price)}
-                          background="green.400"
+                          background="green.500"
+                          display="flex"
+                          flexDirection="column"
                           color="white"
-                          onClick={() => {
-                            router.push(`/checkout${enrollQuerys}`);
-                          }}
+                          width="100%"
+                          whiteSpace="normal"
+                          wordWrap="break-word"
+                          padding="10px"
+                          onClick={() => { router.push(`/checkout${enrollQuerys}`); }}
                         >
-                          {!featuredPlanToEnroll?.isFreeTier
-                            ? `${getAlternativeTranslation('common:enroll-for-connector')} ${featurePrice}`
-                            : capitalizeFirstLetter(featurePrice)}
+                          <Flex flexDirection="column" alignItems="center">
+                            <Text fontSize={!featuredPlanToEnroll?.isFreeTier ? '16px' : '14px'}>
+                              {!featuredPlanToEnroll?.isFreeTier
+                                ? `${getAlternativeTranslation('common:enroll-for-connector')} ${featurePrice}`
+                                : capitalizeFirstLetter(featurePrice)}
+                            </Text>
+                            {!featuredPlanToEnroll?.isFreeTier && (
+                              <Flex alignItems="center" marginTop="5px" gap="5px" justifyContent="center">
+                                <Icon icon="shield" color="#ffffff" width="23px" />
+                                <Text fontSize="13px" fontWeight="medium" paddingTop="2px">
+                                  {t('common:money-back-guarantee-short')}
+                                </Text>
+                              </Flex>
+                            )}
+                          </Flex>
                         </Button>
                         {payableList?.length > 1 && (
                           <Button
@@ -738,6 +763,9 @@ function CoursePage({ data, syllabus }) {
                             color="green.400"
                             isLoading={initialDataIsFetching}
                             borderColor="currentColor"
+                            width="100%"
+                            whiteSpace="normal"
+                            wordWrap="break-word"
                             onClick={goToFinancingOptions}
                           >
                             {t('common:see-financing-options')}
@@ -803,7 +831,7 @@ function CoursePage({ data, syllabus }) {
             <OneColumnWithIcon
               title={getAlternativeTranslation('rigobot.title')}
               icon=""
-              handleButton={() => tryRigobot('#try-rigobot')}
+              handleButton={() => setShowModal(true)}
               buttonText={getAlternativeTranslation('rigobot.button')}
               buttonProps={{ id: 'try-rigobot' }}
             >
@@ -901,6 +929,7 @@ function CoursePage({ data, syllabus }) {
                 background="transparent"
                 imagePosition="right"
                 imageUrl="/static/images/github-repo-preview.png"
+                videoUrl="https://storage.googleapis.com/breathecode/videos/landing-pages/learnpack-demo.mp4"
                 title={features?.['what-is-learnpack']?.title}
                 description={features?.['what-is-learnpack']?.description}
                 informationSize="Medium"
@@ -995,6 +1024,7 @@ function CoursePage({ data, syllabus }) {
           <GridContainer padding="0 10px" maxWidth="1280px" width="100%" gridTemplateColumns="repeat(12, 1fr)">
             {Array.isArray(faqList) && faqList?.length > 0 && (
               <Faq
+                width="100%"
                 gridColumn="1 / span 12"
                 background="transparent"
                 headingStyle={{
@@ -1018,6 +1048,27 @@ function CoursePage({ data, syllabus }) {
           </GridContainer>
         </Box>
       </Flex>
+      <SimpleModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        style={{ marginTop: '10vh' }}
+        maxWidth="45rem"
+        borderRadius="13px"
+        headerStyles={{ textAlign: 'center' }}
+        title={t('rigobot.title')}
+        bodyStyles={{ padding: 0 }}
+        closeOnOverlayClick={false}
+      >
+        <Box padding="0 15px 15px">
+          <ReactPlayerV2
+            url={getAlternativeTranslation('rigobot.video_url')}
+            width="100%"
+            height="100%"
+            iframeStyle={{ borderRadius: '3px 3px 13px 13px' }}
+            autoPlay
+          />
+        </Box>
+      </SimpleModal>
     </>
   );
 }
