@@ -280,6 +280,7 @@ const breathecode = {
     const qs = parseQuerys(query);
     return {
       get: () => axios.get(`${url}/user/me/task`),
+      getDeletionOrders: () => axios.get(`${url}/me/deletion_order${qs}`),
       getCodeRevisions: (taskId) => breathecode.get(`${url}/academy/task/${taskId}/coderevision`),
       getFinalProjects: (cohortId) => axios.get(`${url}/academy/cohort/${cohortId}/final_project`),
       putFinalProject: (cohortId, projectId, data) => breathecode.put(`${url}/academy/cohort/${cohortId}/final_project/${projectId}`, data),
@@ -329,6 +330,7 @@ const breathecode = {
     return {
       get: () => axios.get(`${url}/asset${qs}`),
       getAsset: (slug) => axios.get(`${url}/asset/${slug}${qs}`),
+      getAssetReadme: (slug) => axios.get(`${url}/asset/${slug}.md`),
       getAssetContext: (id) => axios.get(`${url}/asset/${id}/context`),
       techs: () => axios.get(`${url}/academy/technology${qs}`),
       techsBySort: () => axios.get(`${url}/technology${qs}`),
