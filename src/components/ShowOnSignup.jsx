@@ -17,7 +17,7 @@ function ShowOnSignUp({
   headContent, title, description, childrenDescription, subContent, footerContent, submitText, padding, isLive,
   subscribeValues, readOnly, children, hideForm, hideSwitchUser, refetchAfterSuccess, existsConsumables,
   conversionTechnologies, setNoConsumablesFound, invertHandlerPosition, formContainerStyle, buttonStyles,
-  onLastAttempt, maxAttemptsToRefetch, showVerifyEmail, onSubmit, ...rest
+  onLastAttempt, maxAttemptsToRefetch, showVerifyEmail, onSubmit, finishedEvent, isFreeForConsumables, handleJoin, ...rest
 }) {
   const { isAuthenticated, user, logout } = useAuth();
   const { handleSubscribeToPlan } = useSubscribeToPlan();
@@ -139,6 +139,9 @@ function ShowOnSignUp({
                         period_label: respData.data?.period_label || 'one-time',
                         ...respData.data,
                       });
+                      if (subscribeValues?.event_slug && !finishedEvent && (isFreeForConsumables || existsConsumables)) {
+                        handleJoin();
+                      }
                     }
                   });
               }}
@@ -203,6 +206,9 @@ ShowOnSignUp.propTypes = {
   onLastAttempt: PropTypes.func,
   showVerifyEmail: PropTypes.bool,
   onSubmit: PropTypes.func,
+  finishedEvent: PropTypes.bool,
+  isFreeForConsumables: PropTypes.bool,
+  handleJoin: PropTypes.func,
 };
 
 ShowOnSignUp.defaultProps = {
@@ -231,6 +237,9 @@ ShowOnSignUp.defaultProps = {
   onLastAttempt: () => {},
   showVerifyEmail: true,
   onSubmit: () => {},
+  finishedEvent: false,
+  isFreeForConsumables: false,
+  handleJoin: () => {},
 };
 
 export default ShowOnSignUp;

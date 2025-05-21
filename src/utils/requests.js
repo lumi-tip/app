@@ -275,7 +275,7 @@ const getMarkdownFromCache = async (slug, asset) => {
   if (!markdown) {
     console.log(`${slug} not found on cache`);
 
-    const exensionName = getExtensionName(asset.readme_url);
+    const exensionName = getExtensionName(asset?.readme_url);
     const extension = exensionName !== 'ipynb' ? 'md' : 'html';
     const endpoint = `${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}.${extension}`;
 

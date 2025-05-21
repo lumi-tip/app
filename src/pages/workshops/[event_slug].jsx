@@ -14,7 +14,7 @@ import SimpleModal from '../../components/SimpleModal';
 import GridContainer from '../../components/GridContainer';
 import Heading from '../../components/Heading';
 import Text from '../../components/Text';
-import { adjustNumberBeetwenMinMax, capitalizeFirstLetter, getStorageItem, isValidDate, getBrowserInfo } from '../../utils';
+import { adjustNumberBeetwenMinMax, capitalizeFirstLetter, getStorageItem, isValidDate, getBrowserInfo, getQueryString } from '../../utils';
 import useStyle from '../../hooks/useStyle';
 import Icon from '../../components/Icon';
 import PublicProfile from '../../components/PublicProfile';
@@ -160,7 +160,7 @@ function Workshop({ eventData, asset }) {
   const [isModalConfirmOpen, setIsModalConfirmOpen] = useState(false);
   const [isCheckinModalOpen, setIsCheckinModalOpen] = useState(false);
   const [randomImage, setRandomImage] = useState(arrayOfImages[0]);
-  const accessToken = getStorageItem('accessToken');
+  const accessToken = getStorageItem('accessToken') || getQueryString('token');
   const [isModalToGetAccessOpen, setIsModalToGetAccessOpen] = useState(false);
   const [dataToGetAccessModal, setDataToGetAccessModal] = useState({});
   const [isFetchingDataForModal, setIsFetchingDataForModal] = useState(false);
@@ -566,9 +566,11 @@ function Workshop({ eventData, asset }) {
             agent: getBrowserInfo(),
           },
         });
-        router.push(`${BREATHECODE_HOST}/v1/events/me/event/${event?.id}/join?token=${accessToken}` || '#');
+        const accessTokenToUse = accessToken || getQueryString('token');
+        router.push(`${BREATHECODE_HOST}/v1/events/me/event/${event?.id}/join?token=${accessTokenToUse}` || '#');
       }
-      if (isAuthenticated && !alreadyApplied && !readyToJoinEvent) {
+      console.log(!alreadyApplied, !readyToJoinEvent, (isAuthenticated || getQueryString('token')));
+      if ((isAuthenticated || getQueryString('token')) && !alreadyApplied && !readyToJoinEvent) {
         bc.events().applyEvent(event?.id, utms)
           .then((resp) => {
             if (resp !== undefined) {
@@ -1092,6 +1094,9 @@ function Workshop({ eventData, asset }) {
                     handleJoin();
                     setIsRefetching(false);
                   }}
+                  finishedEvent={finishedEvent}
+                  isFreeForConsumables={isFreeForConsumables}
+                  handleJoin={handleJoin}
                   headContent={readyToJoinEvent ? (
                     <Box position="relative" zIndex={1} width="100%" height={177}>
                       {recordingUrl ? (
