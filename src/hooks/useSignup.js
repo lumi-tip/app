@@ -147,6 +147,11 @@ const useSignup = () => {
         throw new Error('The plan does not exist');
       }
       const featuredInfo = Array.isArray(translations.checkout_featured_info(data?.slug)) ? translations.checkout_featured_info(data?.slug) : resp?.data;
+      const consumptionStrategy = data?.consumption_strategy;
+      const seatServicePrice = data?.seat_service_price;
+      const isTeamAllowed = Array.isArray(data?.service_items)
+        ? data.service_items.some((si) => si?.is_team_allowed)
+        : false;
       const owner = data?.owner;
 
       const existsAmountPerHalf = data?.price_per_half > 0;
@@ -175,6 +180,9 @@ const useSignup = () => {
         show: true,
         isFreeTier: false,
         owner,
+        consumption_strategy: consumptionStrategy,
+        seat_service_price: seatServicePrice,
+        is_team_allowed: isTeamAllowed,
       };
 
       const textInfo = {
@@ -374,6 +382,9 @@ const useSignup = () => {
         paymentOptions: paymentList,
         financingOptions: financingList,
         hasSubscriptionMethod,
+        consumption_strategy: consumptionStrategy,
+        seat_service_price: seatServicePrice,
+        is_team_allowed: isTeamAllowed,
       };
     } catch (error) {
       console.error('Error processing plans:', error);
@@ -669,7 +680,8 @@ const useSignup = () => {
     }
   };
 
-  const getChecking = async (plansData) => {
+  const getChecking = async (plansData, options = {}) => {
+    const { teamSeats } = options || {};
     const src = (addOnsSimple || '').trim();
     let addOnsArray = [];
     if (src) {
@@ -701,6 +713,7 @@ const useSignup = () => {
       coupons: couponsQuery ? [couponsQuery] : undefined,
       country_code,
       service_items: addOnsArray,
+      team_seats: Number.isFinite(Number(teamSeats)) && Number(teamSeats) > 0 ? Number(teamSeats) : undefined,
     };
 
     try {

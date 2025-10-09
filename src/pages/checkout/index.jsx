@@ -91,6 +91,8 @@ function Checkout() {
   const { t, lang } = useTranslation('signup');
   const router = useRouter();
   const {
+    teamSeats,
+    setTeamSeats,
     setCouponError,
     getDiscountValue,
     renderPlanDetails,
@@ -509,6 +511,39 @@ function Checkout() {
                     </Flex>
                     {isSecondStep && (
                       <>
+                        {/* Seats selector for PER_SEAT plans */}
+                        {Boolean(originalPlan?.consumption_strategy === 'PER_SEAT' && (originalPlan?.is_team_allowed || originalPlan?.service_items?.some?.((si) => si?.is_team_allowed))) && (
+                          <Flex justifyContent="space-between" width="100%" alignItems="center" mt="1rem">
+                            <Text size="18px" color="currentColor" lineHeight="normal">
+                              {t('signup:select-team-seats')}
+                            </Text>
+                            <Flex alignItems="center" gridGap="8px">
+                              <Button
+                                variant="outline"
+                                onClick={() => setTeamSeats((s) => Math.max(1, (Number(s) || 1) - 1))}
+                                isDisabled={(Number(teamSeats) || 1) <= 1}
+                              >
+                                -
+                              </Button>
+                              <Input
+                                value={teamSeats}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setTeamSeats(Number.isFinite(val) && val > 0 ? val : 1);
+                                }}
+                                width="80px"
+                                textAlign="center"
+                              />
+                              <Button
+                                variant="outline"
+                                onClick={() => setTeamSeats((s) => (Number(s) || 1) + 1)}
+                              >
+                                +
+                              </Button>
+                            </Flex>
+                          </Flex>
+                        )}
+                        {/* End seats selector */}
                         <Flex justifyContent="space-between" width="100%" padding="3rem 0px 0">
                           <Text size="18px" color="currentColor" lineHeight="normal">
                             Subtotal:

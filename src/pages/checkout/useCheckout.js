@@ -35,6 +35,7 @@ const useCheckout = () => {
   const [discountValues, setDiscountValues] = useState(undefined);
   const [checkInfoLoader, setCheckInfoLoader] = useState(false);
   const [userSelectedPlan, setUserSelectedPlan] = useState(undefined);
+  const [teamSeats, setTeamSeats] = useState(0);
   const currencySymbol = currenciesSymbols[originalPlan?.currency?.code] || '$';
 
   const { isAuthenticated } = useAuth();
@@ -223,6 +224,8 @@ const useCheckout = () => {
       setSuggestedPlans(suggestedPlanInfo[0]?.suggested_plan);
 
       setSelectedPlan(defaultPlan);
+      const supportsSeats = processedPlan?.consumption_strategy === 'PER_SEAT' && (processedPlan?.is_team_allowed || processedPlan?.service_items?.some?.((si) => si?.is_team_allowed));
+      if (supportsSeats) setTeamSeats((prev) => (prev && prev > 0 ? prev : 1));
       setOriginalPlan({ ...processedPlan, accordionList: accordionListWithAddOns });
     } catch (err) {
       createToast({
@@ -240,7 +243,7 @@ const useCheckout = () => {
     try {
       setLoader('plan', true);
 
-      const checking = await getChecking(planData);
+      const checking = await getChecking(planData, { teamSeats });
 
       // Check if getChecking returned an error response
       if (checking?.status >= 400) {
@@ -298,7 +301,7 @@ const useCheckout = () => {
   useEffect(() => {
     if (!userSelectedPlan || !planData) return;
     setCheckInfoLoader(true);
-    getChecking(planData)
+    getChecking(planData, { teamSeats })
       .then((checking) => {
         const autoSelectedPlan = findAutoSelectedPlan(checking);
 
@@ -311,7 +314,7 @@ const useCheckout = () => {
       .catch(() => {
         setCheckInfoLoader(false);
       });
-  }, [userSelectedPlan]);
+  }, [userSelectedPlan, teamSeats]);
 
   useEffect(() => {
     const coupons = [];
@@ -549,6 +552,8 @@ const useCheckout = () => {
   useEffect(() => () => restartSignup(), []);
 
   return {
+    teamSeats,
+    setTeamSeats,
     couponError,
     setCouponError,
     checkInfoLoader,
