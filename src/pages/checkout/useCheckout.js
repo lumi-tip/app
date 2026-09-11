@@ -207,7 +207,7 @@ const useCheckout = () => {
   const [discountCode, setDiscountCode] = useState('');
   const [discountCoupon, setDiscountCoupon] = useState(null);
   const [couponError, setCouponError] = useState(false);
-  const [suggestedPlans, setSuggestedPlans] = useState(undefined);
+  const [, setSuggestedPlans] = useState(undefined);
   const [discountValues, setDiscountValues] = useState(undefined);
   const [userSelectedPlan, setUserSelectedPlan] = useState(undefined);
   const currencySymbol = currenciesSymbols[originalPlan?.currency?.code] || '$';
