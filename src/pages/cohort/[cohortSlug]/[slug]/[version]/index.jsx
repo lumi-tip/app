@@ -196,7 +196,7 @@ function Dashboard() {
     const ownsMacro = cohorts?.some((c) => c?.slug === cohortSession?.slug);
     if (!ownsMacro) return;
     const missingAnyMicro = cohortSession.micro_cohorts.some((mc) => !cohorts?.some((uc) => uc.slug === mc.slug));
-    if (missingAnyMicro) setShowSyncMicroModal(true);
+    setShowSyncMicroModal(missingAnyMicro);
   }, [cohortSession?.slug, cohorts?.length]);
 
   const handleSyncMicroCohorts = async () => {
@@ -206,11 +206,12 @@ function Dashboard() {
       const resp = await bc.admissions().syncMyMicroCohorts(cohortSession.slug);
       if (resp?.status < 400) {
         const { cohorts: updatedCohorts } = await reSetUserAndCohorts();
+        setShowSyncMicroModal(false);
 
         const microCohorts = updatedCohorts.filter((c) => cohortSession.micro_cohorts.some((mc) => mc.slug === c.slug));
-        await getCohortsModules(microCohorts, { explicitBatchMacroSlug: cohortSession.slug });
-
-        setShowSyncMicroModal(false);
+        getCohortsModules(microCohorts, { explicitBatchMacroSlug: cohortSession.slug }).catch((err) => {
+          console.log(err);
+        });
       }
     } catch (e) {
       console.log(e);
