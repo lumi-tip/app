@@ -102,7 +102,7 @@ function useCohortHandler() {
   };
 
   const getCohortsModules = async (cohorts, macroSlugOptions = {}) => {
-    const { redirectOnSyllabusError = false, ...slugOptions } = macroSlugOptions;
+    const { redirectOnSyllabusError = false, suppressEmptyError = false, ...slugOptions } = macroSlugOptions;
 
     const showSyllabusErrorAndMaybeRedirect = () => {
       createToast({
@@ -324,7 +324,7 @@ function useCohortHandler() {
         || Array.isArray(cohortsAssignments[cohort.slug]?.modules)
       ));
 
-      if (!hasLoadedModules && cohorts.length > 0) {
+      if (!hasLoadedModules && cohorts.length > 0 && !suppressEmptyError) {
         showSyllabusErrorAndMaybeRedirect();
       }
 
